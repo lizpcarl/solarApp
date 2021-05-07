@@ -8,27 +8,27 @@ class NVRControl {
             this.sock = net.connect({
                 port: 8080,
                 host: "172.19.88.90",
-            }, function () {
+            }, function() {
                 console.log('connected to server!');
             });
             // 有错误发生调用的事件
-            this.sock.on("error", function (e) {
+            this.sock.on("error", function(e) {
                 reject();
                 console.log("error", e);
             });
 
             // socket关闭的事件
-            this.sock.on("close", function () {
+            this.sock.on("close", function() {
                 console.log("close");
             });
 
             // 对方发送了关闭数据包过来的事件
-            this.sock.on("end", function () {
+            this.sock.on("end", function() {
                 console.log("end event");
             });
 
             // 当有数据发生的时候，调用;
-            this.sock.on("data", function (data) {
+            this.sock.on("data", function(data) {
                 console.log(data);
             });
             // 连接成功调用的事件

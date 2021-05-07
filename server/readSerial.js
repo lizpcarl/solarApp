@@ -8,7 +8,7 @@ const Readline = require('@serialport/parser-readline')
 class ReadSerial {
     constructor() {
         this.port = new SerialPort('/dev/ttyUSB0', 9600);
-        this.port.on('open', function () {
+        this.port.on('open', function() {
             /**port.write('main screen turn on', function(err) {
                 if (err) {
                     return console.log('Error on write: ', err.message);
@@ -17,10 +17,10 @@ class ReadSerial {
             });*/
         });
         // open errors will be emitted as an error event 
-        this.port.on('error', function (err) {
+        this.port.on('error', function(err) {
             console.log('Error: ', err.message);
         });
-        this.port.on('readable', function () {
+        this.port.on('readable', function() {
             console.log('Data:', port.read())
         });
         // Switches the port into "flowing mode"

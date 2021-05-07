@@ -21,6 +21,7 @@ class ControlSwitch {
         this.globalPowerFlag = null;
         this.backupPowerFlag = null;
         this.collectSolarFlag = null;
+        this.solarChargeMode = null;
 
         this.switchArr = [29, 31, 33, 35, 32, 36, 38, 40]; //继电器为高电平触发
         for (let pini of this.switchArr) {
@@ -75,10 +76,11 @@ class ControlSwitch {
     singleBigSwitch(inputHex) {
         //0001对应4321号大型继电器，单通，只允许一个HIGH，否则短路。高位对应大序号的继电器。
         let lowArr = [],
+            lowCount = 0,
             highItem = -1;
         //例如0001为1号0x1，0010为2号0x2，0100为3号0x4，1000为4号0x8。[0000,0001,0010,0100,1000]
         for (let i = 0; i < 4; i++) {
-            let val = inputHex >> i;
+            let val = (inputHex >> i) % 2;
             if (val == 1) {
                 highItem = i;
             } else {
@@ -93,9 +95,11 @@ class ControlSwitch {
             let pinStartNumber = 4;
             for (let idx of lowArr) {
                 rpio.write(this.switchArr[pinStartNumber + idx], rpio.LOW);
+                console.debug('single rpio, rpio[' + (pinStartNumber + idx) + ']--' + this.switchArr[pinStartNumber + idx] + ' set to LOW.');
             }
             if (highItem >= 0) {
                 rpio.write(this.switchArr[pinStartNumber + highItem], rpio.HIGH);
+                console.debug('single rpio, rpio[' + (pinStartNumber + highItem) + ']--' + this.switchArr[pinStartNumber + highItem] + ' set to HIGH.');
             }
         }
     }
@@ -104,14 +108,26 @@ class ControlSwitch {
             console.error('middleSwitch. inputHex:' + inputHex);
         } else {
             for (let i = 0; i < 4; i++) {
-                let val = (inputHex >> i) ? rpio.HIGH : rpio.LOW;
-                rpio.write(this.switchArr[1], val);
+                let val = ((inputHex >> i) % 2) ? rpio.HIGH : rpio.LOW;
+                rpio.write(this.switchArr[i], val);
+                console.debug(`rpio, rpio[${i}]--` + this.switchArr[i] + ` set to ${val}`);
             }
         }
     }
-    setCollectSolar(flag) {
+    adjustCollectSolar(chargeMode) {
         //分为几种情况，abcd分别对应0~3号大型继电器；BCD汇流A，减流BCD，减流ABCD，
-        //[0,1,2,3]==[abcdDoNothing, bcdToNull, abcdToNull, bcdToA]==[0x00, 0x0E, 0x0F, 0x1E]
+        //chargeMode: [0,1,2,3]==[abcdDoNothing, bcdToNull, abcdToNull, bcdToA]==[0x00, 0x0E, 0x0F, 0x1E]
+        if (this.solarChargeMode !== chargeMode) {
+            let chargeModeName = ['abcdDoNothing', 'bcdToNull', 'abcdToNull', 'bcdToA'];
+            let chargeModeHex = [0x00, 0x0E, 0x0F, 0x1E];
+            let totalTypeHex = chargeModeHex[chargeMode];
+            console.log('charge mode[' + chargeMode + ']:' + totalTypeHex, chargeModeName[chargeMode], new Date().toString());
+            this.singleBigSwitch(totalTypeHex >> 4);
+            this.middleSwitch(totalTypeHex & 0x0F);
+            this.solarChargeMode = chargeMode;
+        }
+    }
+    setCollectSolar(flag) {
         if (flag) {
             if (this.collectSolarFlag !== flag) {
                 //----------分隔线开始，两线之间为汇聚电流，只允许一个HIGH，否则短路。
